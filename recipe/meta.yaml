@@ -19,7 +19,7 @@
 #
 # Bump this on every compiler release: `oneccl-devel` keeps its own upstream build
 # number and exact-pins `intel-sycl-rt`. See conda-forge/intel-compiler-repack-feedstock#86.
-{% set dst_build_number = '3' %}
+{% set dst_build_number = '4' %}
 {% set build_number = intel_build_number|int + dst_build_number|int %}
 
 package:
@@ -246,13 +246,19 @@ outputs:
       run_exports:
         # Pin to year for now, similar to MKL.
         - {{ pin_subpackage("intel-fortran-rt", max_pin="x") }}
+      # Intel Fortran's CoArray library (libicaf.so) links libmpi.so.12, but Intel
+      # coarrays require Intel MPI and won't work correctly with MPICH (see
+      # conda-forge/intel-compiler-repack-feedstock@14a3de6). So we do not depend on
+      # mpich here; users that need coarrays must add Intel MPI themselves. Whitelist
+      # the missing DSO instead of pulling an mpich run-export.
+      missing_dso_whitelist:      # [linux]
+        - '**/libmpi.so.12'       # [linux]
     requirements:
       build:
         - {{ compiler('c') }}
         - {{ stdlib('c') }}
         - patchelf                 # [linux]
       host:
-        - mpich                    # [linux]
         - {{ pin_subpackage('intel-cmplr-lib-rt', exact=True) }}
       run:
         - _openmp_mutex * *_llvm   # [linux]
